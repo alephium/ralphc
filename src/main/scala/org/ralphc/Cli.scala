@@ -10,7 +10,7 @@ class Cli extends Callable[Unit] {
   @Option(names = Array("-f"))
   val files: Array[String] = null
 
-  @Option(names = Array("-t"), description = Array("compile type; 1:script, 2:contract, 3: assert"))
+  @Option(names = Array("-t", "--type"), description = Array("compile type; 1:script, 2:contract, 3: assert"))
   var ty = 1
 
   @Option(names = Array("-d", "--debug"), defaultValue = "false", description = Array("debug mode"))
@@ -45,6 +45,7 @@ class Cli extends Callable[Unit] {
         Compiler.compileScript(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecodeTemplate))
       case 2 =>
         Compiler.compileContract(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecode))
+      case _ => pprint.pprintln("type option error!")
     }
   }
 }
