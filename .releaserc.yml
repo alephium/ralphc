@@ -1,0 +1,37 @@
+{ "branches": ["master", "next"],
+  "plugins": [
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "preset": "jshint"
+        }
+      ],
+      [
+        "@semantic-release/release-notes-generator",
+        {
+          "preset": "jshint"
+        }
+      ],
+      [
+        "@semantic-release/changelog",
+        { "changelogFile": "CHANGELOG.md", "changelogTitle": "changelog" },
+      ],
+      # "@semantic-release/npm", #Default 3
+      # "@semantic-release/github", #Default 4
+      [
+          "@semantic-release/github",
+          {"assets": ["bin/*.gz","bin/*.zip"]}
+      ],
+      [
+        "@semantic-release/git",
+        {
+          "assets": ["CHANGELOG.md"],
+        }
+      ],
+      [
+        "@semantic-release/exec", {
+          "prepareCmd": "make assembly"
+        }
+      ],
+  ]
+}
