@@ -3,5 +3,10 @@ package org.ralphc
 import picocli.CommandLine
 
 object Main extends App {
-  System.exit(new CommandLine(new Cli).execute(args: _*))
+  val cli = new CommandLine(new Cli)
+  if (args.isEmpty) {
+    System.exit(cli.execute("-h"))
+  } else {
+    System.exit(cli.execute(args: _*))
+  }
 }

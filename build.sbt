@@ -11,6 +11,7 @@ resolvers += "Sonatype s01 Releases" at "https://s01.oss.sonatype.org/content/re
 lazy val root = (project in file("."))
   .settings(
     name := "ralphc",
+    assembly / assemblyJarName := "ralphc.jar",
     libraryDependencies ++= Seq(
       utilCore,
       "com.lihaoyi" %% "pprint" % "0.7.0",

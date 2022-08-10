@@ -34,18 +34,23 @@ class Cli extends Callable[Unit] {
   }
 
   override def call(): Unit = {
-    val codes = files.fold("")((code, e) =>
-      if (e.nonEmpty) {
-        Using(Source.fromFile(e)) { source => source.mkString + code }.get
-      } else { code }
-    )
-
-    ty match {
-      case 1 =>
-        Compiler.compileScript(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecodeTemplate))
-      case 2 =>
-        Compiler.compileContract(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecode))
-      case _ => pprint.pprintln("type option error!")
+    if (files != null) {
+      val codes = files.fold("")((code, e) =>
+        if (e.nonEmpty) {
+          Using(Source.fromFile(e)) { source => source.mkString + code }.get
+        } else {
+          code
+        }
+      )
+      ty match {
+        case 1 =>
+          Compiler.compileScript(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecodeTemplate))
+        case 2 =>
+          Compiler.compileContract(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecode))
+        case _ => pprint.pprintln("type option error!")
+      }
+    } else {
+      pprint.pprintln("no file")
     }
   }
 }
