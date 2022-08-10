@@ -29,6 +29,7 @@ test:
 dep:
 	wget https://github.com/alephium/alephium/releases/download/v1.4.4/alephium-1.4.4.jar -O ./lib/alephium-1.4.4.jar
 
+.PHONY: tests
 tests:
 	java -jar ./target/scala-2.13/ralphc.jar -t 2 -f ./tests/event_emitter.ral
 	java -jar ./target/scala-2.13/ralphc.jar -t 2 -f ./tests/math.ral
