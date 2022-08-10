@@ -1,6 +1,6 @@
 # Ralphc
 
-A command line compiler for ralph language in java written
+A command line compiler for ralph language
 
 ## Environment:
 - [JDK11](https://www.oracle.com/java/technologies/javase-downloads.html)
