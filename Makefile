@@ -27,6 +27,7 @@ test:
 	sbt test
 
 dep:
+	mkdir -p lib
 	wget https://github.com/alephium/alephium/releases/download/v1.4.4/alephium-1.4.4.jar -O ./lib/alephium-1.4.4.jar
 
 .PHONY: tests
