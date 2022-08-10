@@ -26,7 +26,7 @@ jobs:
           version=$(echo ${GITHUB_REF/refs\/tags\//} | cut -c 2-)
           echo ::set-output name=VERSION::$version
         shell: bash
-      - run: make assembly
+      - run: make dep && make assembly
 
       - name : Upload artifact
         uses: actions/upload-artifact@v2
