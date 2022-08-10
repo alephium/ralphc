@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+#set -o verbose
+#set -o xtrace
+
+java -jar ralphc.jar -t $1 -f $2
+

@@ -12,9 +12,6 @@ log
 .bloop
 .bsp
 .DS_Store
-./lib
-./project/metals.sbt
 .vscode
 /lib/alephium-1.4.4.jar
-/Dockerfile
 /project/metals.sbt

@@ -1,4 +1,4 @@
-{ "branches": ["master", "next"],
+{ "branches": ["main", "master", "next"],
   "plugins": [
       [
         "@semantic-release/commit-analyzer",
@@ -20,7 +20,7 @@
       # "@semantic-release/github", #Default 4
       [
           "@semantic-release/github",
-          {"assets": ["bin/*.gz","bin/*.zip"]}
+          {"assets": ["target/scala-2.13/ralphc.jar"]}
       ],
       [
         "@semantic-release/git",
