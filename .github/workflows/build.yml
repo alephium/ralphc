@@ -29,7 +29,7 @@ jobs:
       - run: make dep && make assembly
 
       - name : Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ralphc.zip
           path: target/scala-2.13/ralphc.jar
