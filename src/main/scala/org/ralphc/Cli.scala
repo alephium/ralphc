@@ -1,24 +1,18 @@
 package org.ralphc
 
-import scala.io.Source
-import scala.util.Using
 import java.util.concurrent.Callable
-import picocli.CommandLine.{Command, Option, Parameters}
+import picocli.CommandLine.{Command, Option}
 
 @Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.4.4"), description = Array("compiler ralph language."))
 class Cli extends Callable[Unit] {
   @Option(names = Array("-f"))
-  val files: Array[String] = null
-
-  @Option(names = Array("-t", "--type"), description = Array("compile type; 1:script, 2:contract, 3: assert"))
-  var ty = 1
+  val files: Array[String] = Array.empty
 
   @Option(names = Array("-d", "--debug"), defaultValue = "false", description = Array("debug mode"))
   var debug: Boolean = false
 
   def _debug(): Unit = {
     if (debug) {
-      pprint.pprintln(ty)
       pprint.pprintln(files)
     }
   }
@@ -34,23 +28,22 @@ class Cli extends Callable[Unit] {
   }
 
   override def call(): Unit = {
-    if (files != null) {
-      val codes = files.fold("")((code, e) =>
-        if (e.nonEmpty) {
-          Using(Source.fromFile(e)) { source => source.mkString + code }.get
-        } else {
-          code
-        }
-      )
-      ty match {
-        case 1 =>
-          Compiler.compileScript(codes).fold(err => error(err.detail),(ret => ok(ret.bytecodeTemplate)))
-        case 2 =>
-          Compiler.compileContract(codes).fold(err => error(err.detail),(ret => ok(ret.bytecode)))
-        case _ => pprint.pprintln("type option error!")
-      }
-    } else {
-      pprint.pprintln("no file")
-    }
+
+    files.foreach(path => {
+      Parser
+        .Parser(path)
+        .fold(
+          deps => error(deps.mkString("|")),
+          value =>
+            value._1 match {
+              case 1 =>
+                Compiler.compileScript(value._2).fold(err => error(err.detail), (ret => ok(ret.bytecodeTemplate)))
+              case 2 =>
+                Compiler.compileContract(value._2).fold(err => error(err.detail), (ret => ok(ret.bytecode)))
+              case _ => pprint.pprintln("type option error!")
+            }
+        )
+    })
+
   }
 }
