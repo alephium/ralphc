@@ -23,4 +23,3 @@ object Compiler {
       .map(error => failed(error.toString))
   }
 }
-

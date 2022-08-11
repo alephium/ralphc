@@ -44,9 +44,9 @@ class Cli extends Callable[Unit] {
       )
       ty match {
         case 1 =>
-          Compiler.compileScript(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecodeTemplate))
+          Compiler.compileScript(codes).fold(err => error(err.detail),(ret => ok(ret.bytecodeTemplate)))
         case 2 =>
-          Compiler.compileContract(codes).left.map(err => error(err.detail)).map(ret => ok(ret.bytecode))
+          Compiler.compileContract(codes).fold(err => error(err.detail),(ret => ok(ret.bytecode)))
         case _ => pprint.pprintln("type option error!")
       }
     } else {
