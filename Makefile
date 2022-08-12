@@ -30,6 +30,8 @@ test:
 tests:
 	java -jar ./target/scala-2.13/ralphc.jar  -f ./tests/event_emitter.ral
 	java -jar ./target/scala-2.13/ralphc.jar  -f ./tests/math.ral
+	java -jar ./target/scala-2.13/ralphc.jar  -f ./tests/alephium-web3/contracts/greeter_main.ral
+	java -jar ./target/scala-2.13/ralphc.jar  -f ./tests/alephium-web3/contracts/main.ral
 
 
 

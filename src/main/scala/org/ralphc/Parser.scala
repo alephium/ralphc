@@ -2,6 +2,7 @@ package org.ralphc
 
 import java.io.File
 import java.nio.file.Paths
+import scala.collection.immutable
 import scala.collection.mutable
 import scala.io.Source
 import scala.util.Using
@@ -36,7 +37,7 @@ object Parser {
   }
 
   def Parser(path: String): Either[Array[String], (Int, String)] = {
-    val dfsNodes: mutable.Map[String, LightNode] = mutable.Map.empty
+    var dfsNodes: immutable.ListMap[String, LightNode] = immutable.ListMap.empty
     val absolutePath                             = new File(path).getCanonicalPath
     parser(absolutePath)
 
@@ -62,8 +63,8 @@ object Parser {
         )(node => if (node.status == 0) None else { Some() })
     }
 
-    dfs(absolutePath).fold[Either[Array[String], (Int, String)]](Left(dfsNodes.keys.toArray))(_ =>
-      Right((files(absolutePath).ty, dfsNodes.values.map(_.code).fold("")(_ + _)))
+    dfs(absolutePath).fold[Either[Array[String], (Int, String)]](Left(dfsNodes.keys.toArray))(
+      _ => Right((files(absolutePath).ty, dfsNodes.values.map(_.code).fold("")(_ + _)))
     )
   }
 }
