@@ -51,13 +51,13 @@ object Parser {
     val absolutePath                                   = new File(path).getCanonicalPath
     parser(absolutePath)
 
-    def dfs(path: String): Option[Unit] = {
+    def dfs(path: String): Option[Either[Unit, String]] = {
       dfsNodes
         .get(path)
-        .fold[Option[Unit]](
+        .fold(
           files
             .get(path)
-            .map(node => {
+            .fold[Option[Either[Unit, String]]](Some(Right("error")))(node => {
               if (node.deps.nonEmpty) {
                 dfsNodes += (node.path -> LightNode(node.compile, None))
                 for (path <- node.deps) {
@@ -69,8 +69,14 @@ object Parser {
               } else {
                 dfsNodes += (node.path -> LightNode(node.compile, Some()))
               }
+              Some(Left())
             })
-        )(node => node.status)
+        )(
+          node => node.status match {
+            case None    => None
+            case Some(_) => Some(Left())
+          }
+        )
     }
 
     dfs(absolutePath).fold[Either[Array[String], (Compile[String], String)]](Left(dfsNodes.keys.toArray))(_ =>
