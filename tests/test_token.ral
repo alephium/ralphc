@@ -1,6 +1,6 @@
 import "token_interface.ral"
 
-TxContract TestToken(
+Contract TestToken(
     symbol_: ByteVec,
     name_: ByteVec,
     decimals_: U256,

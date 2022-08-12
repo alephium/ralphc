@@ -1,4 +1,4 @@
-TxContract EventEmitter() {
+Contract EventEmitter() {
     event WormholeMessage(sender: ByteVec, sequence: U256, nonce: ByteVec, payload: ByteVec, consistencyLevel: U256)
     event TokenBridgeForChainCreated(sender: ByteVec, contractId: ByteVec, remoteChainId: U256)
     event TokenWrapperCreated(sender: ByteVec, tokenBridgeForChainId: ByteVec, contractId: ByteVec, isLocalToken: Bool, tokenId: ByteVec, remoteChainId: U256)

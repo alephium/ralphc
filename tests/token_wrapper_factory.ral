@@ -1,6 +1,6 @@
 import "event_emitter.ral"
 
-TxContract TokenWrapperFactory<tokenWrapperByteCode: ByteVec, eventEmitterId: ByteVec>() {
+Contract TokenWrapperFactory<tokenWrapperByteCode: ByteVec, eventEmitterId: ByteVec>() {
     pub payable fn createWrapper(
         tokenBridgeId: ByteVec,
         localChainId: U256,
