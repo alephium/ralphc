@@ -37,20 +37,17 @@ class Cli extends Callable[Unit] {
 
   override def call(): Unit = {
 
-    files.foreach(path => {
+    files.foreach(path =>
       Parser
         .Parser(path)
         .fold(
-          deps => error(deps.mkString("|")),
+          deps => error(deps.mkString("\n")),
           value =>
-            value._1 match {
-              case 1 =>
-                Compiler.compileScript(value._2).fold(err => print(err.detail, value), (ret => print(ret.bytecodeTemplate, value)))
-              case 2 =>
-                Compiler.compileContract(value._2).fold(err => print(err.detail, value), (ret => print(ret.bytecode, value)))
-              case _ => pprint.pprintln("type option error!")
-            }
+            value._1.map(
+              _ => Compiler.compileScript(value._2).fold(err => Some(err.detail), ret => Some(ret.bytecodeTemplate).foreach(print(_, value))),
+              _ => Compiler.compileContract(value._2).fold(err => Some(err.detail), ret => Some(ret.bytecode).foreach(print(_, value)))
+            )
         )
-    })
+    )
   }
 }

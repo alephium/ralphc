@@ -2,10 +2,23 @@ package org.ralphc
 
 import scala.collection.mutable
 
-class Node(val path: String) {
-  var ty                        = 1
-  var code                      = ""
-  var Deps: mutable.Set[String] = mutable.Set.empty
+case class Node(path: String, compile: Compile[String], deps: mutable.Set[String])
+
+case class LightNode(code: Compile[String], var status: Option[Unit])
+
+sealed abstract class Compile[A] {
+  def get: A
+
+  def map[C](script: A => C, contract: A => C): C = this match {
+    case Script(s)   => script(s)
+    case Contract(c) => contract(c)
+  }
 }
 
-case class LightNode(path: String, code: String, var status: Int)
+final case class Script[A](code: A) extends Compile[A] {
+  def get: A = code
+}
+
+final case class Contract[A](code: A) extends Compile[A] {
+  def get: A = code
+}
