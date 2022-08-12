@@ -14,12 +14,17 @@ lazy val root = (project in file("."))
     assembly / assemblyJarName := "ralphc.jar",
     libraryDependencies ++= Seq(
       utilCore,
+      "org.alephium" % "alephium-protocol_2.13" % "1.5.0-rc4",
+      "org.alephium" % "alephium-api_2.13" % "1.5.0-rc4",
       "com.lihaoyi" %% "pprint" % "0.7.0",
       "info.picocli" % "picocli" % "4.6.3"
     )
   )
 
 
-
-
-
+assemblyMergeStrategy in assembly := {
+  case "META-INF/versions/9/module-info.class" => MergeStrategy.last
+  case x =>
+    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    oldStrategy(x)
+}
