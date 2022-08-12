@@ -38,7 +38,7 @@ object Parser {
 
   def Parser(path: String): Either[Array[String], (Int, String)] = {
     var dfsNodes: immutable.ListMap[String, LightNode] = immutable.ListMap.empty
-    val absolutePath                             = new File(path).getCanonicalPath
+    val absolutePath                                   = new File(path).getCanonicalPath
     parser(absolutePath)
 
     def dfs(path: String): Option[Unit] = {
@@ -63,8 +63,8 @@ object Parser {
         )(node => if (node.status == 0) None else { Some() })
     }
 
-    dfs(absolutePath).fold[Either[Array[String], (Int, String)]](Left(dfsNodes.keys.toArray))(
-      _ => Right((files(absolutePath).ty, dfsNodes.values.map(_.code).fold("")(_ + _)))
+    dfs(absolutePath).fold[Either[Array[String], (Int, String)]](Left(dfsNodes.keys.toArray))(_ =>
+      Right((files(absolutePath).ty, dfsNodes.values.map(_.code).fold("")(_ + _)))
     )
   }
 }

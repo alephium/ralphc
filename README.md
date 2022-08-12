@@ -18,6 +18,26 @@ make dep
 make assembly
 ```
 
+## Run Test
+
+```shell
+make tests
+```
+
+## Run
+```shell
+java -jar ralphc.jar 
+```
+```shell   
+Usage: ralphc [-dhV] [-f=<files>]...
+compiler ralph language.
+  -d, --debug     debug mode
+  -f=<files>
+  -h, --help      Show this help message and exit.
+  -V, --version   Print version information and exit.
+```
+
+
 ## Thanks
 [alephium](https://github.com/alephium/alephium)
 
