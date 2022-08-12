@@ -22,13 +22,12 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 11
-      - name: Get the version
-        id: get_version
-        run: |
-          version=$(echo ${GITHUB_REF/refs\/tags\//} | cut -c 2-)
-          echo ::set-output name=VERSION::$version
-        shell: bash
-      - run: make assembly
+
+      - name: build
+        run: make assembly
+
+      - name: tests
+        run: make tests
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v2
