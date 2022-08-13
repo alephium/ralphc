@@ -2,7 +2,7 @@ package org.ralphc
 
 import scala.collection.mutable
 
-case class Node(path: String, compile: Compile[String], deps: mutable.Set[String])
+case class Node(path: String, compile: Compile[String], deps: Option[mutable.Set[String]])
 
 case class LightNode(code: Compile[String], var status: Option[Unit])
 

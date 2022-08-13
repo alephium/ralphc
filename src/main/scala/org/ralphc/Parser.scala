@@ -36,12 +36,10 @@ object Parser {
       }
       files += (path -> Node(
         path,
-        compile match {
-          case Contract(_) => Contract(codes)
-          case Script(_)   => Script(codes)
-        },
-        deps
+        compile.map(_ => Script(codes), _ => Contract(codes)),
+        Option.when(deps.nonEmpty)(deps)
       ))
+
       deps.foreach(parser)
     }
   }
@@ -51,32 +49,29 @@ object Parser {
     val absolutePath                                   = new File(path).getCanonicalPath
     parser(absolutePath)
 
-    def dfs(path: String): Option[Either[Unit, String]] = {
+    def dfs(path: String): Option[Unit] = {
       dfsNodes
         .get(path)
-        .fold(
+        .fold[Option[Unit]](
           files
             .get(path)
-            .fold[Option[Either[Unit, String]]](Some(Right("error")))(node => {
-              if (node.deps.nonEmpty) {
-                dfsNodes += (node.path -> LightNode(node.compile, None))
-                for (path <- node.deps) {
-                  if (dfs(path).isEmpty) {
-                    return None
-                  }
-                }
-                dfsNodes.get(node.path).foreach(node => node.status = Some())
-              } else {
+            .fold[Option[Unit]](Some())(node =>
+              node.deps.fold[Option[Unit]] {
                 dfsNodes += (node.path -> LightNode(node.compile, Some()))
-              }
-              Some(Left())
-            })
-        )(
-          node => node.status match {
-            case None    => None
-            case Some(_) => Some(Left())
-          }
-        )
+                Some()
+              }(deps => {
+                val lightNode = LightNode(node.compile, None)
+                dfsNodes += (node.path -> lightNode)
+                deps
+                  .map(path => dfs(path))
+                  .find(_.isEmpty)
+                  .fold[Option[Unit]] {
+                    lightNode.status = Some()
+                    Some()
+                  }(_ => None)
+              })
+            )
+        )(node => node.status)
     }
 
     dfs(absolutePath).fold[Either[Array[String], (Compile[String], String)]](Left(dfsNodes.keys.toArray))(_ =>
