@@ -41,11 +41,8 @@ class Cli extends Callable[Int] {
         .Parser(path)
         .fold(
           deps => error("circular dependency：\n" + deps.mkString("\n"), path),
-          value =>
-            value._1.map(
-              _ => Compiler.compileScript(value._2).fold(err => error(err.detail, value), ret => ok(ret.bytecodeTemplate, value)),
-              _ => Compiler.compileContract(value._2).fold(err => error(err.detail, value), ret => ok(ret.bytecode, value))
-            )
+          value => value._1.fold(_ => Compiler.compileScript(value._2).fold(err => error(err.detail, value), ret => ok(ret.bytecodeTemplate, value)))
+                                (_ => Compiler.compileContract(value._2).fold(err => error(err.detail, value), ret => ok(ret.bytecode, value)))
         )
     } yield ret
     rets.sum

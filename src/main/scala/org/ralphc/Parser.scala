@@ -36,7 +36,7 @@ object Parser {
       }
       files += (path -> Node(
         path,
-        compile.map(_ => Script(codes), _ => Contract(codes)),
+        compile.map(_ => codes, _ => codes),
         Option.when(deps.nonEmpty)(deps)
       ))
 
@@ -79,7 +79,7 @@ object Parser {
         (
           files(absolutePath).compile,
           dfsNodes.values
-            .map(node => node.code.map(s => s, c => c))
+            .map(node => node.code.fold(c => c)(c => c))
             .fold("")(_ + _)
         )
       )

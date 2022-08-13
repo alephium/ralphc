@@ -9,9 +9,14 @@ case class LightNode(code: Compile[String], var status: Option[Unit])
 sealed abstract class Compile[A] {
   def get: A
 
-  def map[C](script: A => C, contract: A => C): C = this match {
-    case Script(s)   => script(s)
-    case Contract(c) => contract(c)
+  @inline final def map[C](script: A => C, contract: A => C): Compile[C] = this match {
+    case Script(s)   => Script(script(s))
+    case Contract(c) => Contract(contract(c))
+  }
+
+  @inline final def fold[C](fs: A => C)(fc: A => C): C = this match {
+    case Script(s)   => fs(s)
+    case Contract(c) => fc(c)
   }
 }
 
