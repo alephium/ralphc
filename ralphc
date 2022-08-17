@@ -5,5 +5,5 @@ set -o pipefail
 #set -o verbose
 #set -o xtrace
 
-java -jar ralphc.jar -t $1 -f $2
+java -jar ralphc.jar -f $1
 

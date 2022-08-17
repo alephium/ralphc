@@ -30,7 +30,7 @@
       ],
       [
         "@semantic-release/exec", {
-          "prepareCmd": "make dep && make assembly"
+          "prepareCmd": "make assembly"
         }
       ],
   ]
