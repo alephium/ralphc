@@ -7,9 +7,9 @@ A command line compiler for ralph language
 - scala 2.13.8
 - sbt 1.7.1
 
-## Install dep
+## build
 ```shell
-make dep
+make build
 ```
 
 ## Build jar
