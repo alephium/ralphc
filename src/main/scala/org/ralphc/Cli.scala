@@ -54,7 +54,6 @@ class Cli extends Callable[Int] {
   }
 
   override def call(): Int = {
-
     val compilerOptions = CompilerOptions(
       ignoreUnusedConstantsWarnings = ignoreUnusedConstantsWarnings,
       ignoreUnusedVariablesWarnings = ignoreUnusedVariablesWarnings,
@@ -63,6 +62,7 @@ class Cli extends Callable[Int] {
       ignoreUnusedPrivateFunctionsWarnings = ignoreUnusedPrivateFunctionsWarnings,
       ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
     )
+    _print(compilerOptions)
 
     val rets = for {
       path <- files
