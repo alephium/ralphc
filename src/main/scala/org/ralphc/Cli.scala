@@ -9,47 +9,45 @@ class Cli extends Callable[Int] {
   @Option(names = Array("-f"))
   val files: Array[String] = Array.empty
 
-  @Option(names = Array("-d", "--debug"), defaultValue = "false", description = Array("debug mode"))
+  @Option(names = Array("-d", "--debug"), defaultValue = "false", description = Array("Debug mode"))
   var debug: Boolean = false
 
-  @Option(names = Array("--ic"), defaultValue = "false", description = Array("ignore unused constants warning"))
+  @Option(names = Array("--ic"), defaultValue = "false", description = Array("Ignore unused constants warning"))
   var ignoreUnusedConstantsWarnings: Boolean = false
 
-  @Option(names = Array("--iv"), defaultValue = "false", description = Array("ignore unused variables warning"))
+  @Option(names = Array("--iv"), defaultValue = "false", description = Array("Ignore unused variables warning"))
   var ignoreUnusedVariablesWarnings: Boolean = false
 
-  @Option(names = Array("--if"), defaultValue = "false", description = Array("ignore unused fields warning"))
+  @Option(names = Array("--if"), defaultValue = "false", description = Array("Ignore unused fields warning"))
   var ignoreUnusedFieldsWarnings: Boolean = false
 
-  @Option(names = Array("--ir"), defaultValue = "false", description = Array("ignore readonly check warning"))
+  @Option(names = Array("--ir"), defaultValue = "false", description = Array("Ignore readonly check warning"))
   var ignoreReadonlyCheckWarnings: Boolean = false
 
-  @Option(names = Array("--ip"), defaultValue = "false", description = Array("ignore unused private functions warning"))
+  @Option(names = Array("--ip"), defaultValue = "false", description = Array("Ignore unused private functions warning"))
   var ignoreUnusedPrivateFunctionsWarnings: Boolean = false
 
-  @Option(names = Array("--ie"), defaultValue = "false", description = Array("ignore external call check warning"))
+  @Option(names = Array("--ie"), defaultValue = "false", description = Array("Ignore external call check warning"))
   var ignoreExternalCallCheckWarnings: Boolean = false
 
-  @Option(names = Array("--warning"), defaultValue = "false", description = Array("consider warnings as errors"))
+  @Option(names = Array("-w", "--warning"), defaultValue = "false", description = Array("Consider warnings as errors"))
   var warningAsError: Boolean = false
 
-  def _print[O](other: O): Int = {
+  def debug[O](values: O*): Unit = {
     if (debug) {
-      pprint.pprintln(files)
-      pprint.pprintln(other)
+      values.foreach(pprint.pprintln(_))
     }
-    0
   }
 
   def error[T, O](msg: T, other: O): Int = {
-    pprint.pprintln(s"error: \n $msg")
-    _print(other)
+    pprint.pprintln(s"error: \n $msg ")
+    pprint.pprintln(other)
     -1
   }
 
   def warning[T, O](msg: T, other: O): Int = {
     pprint.pprintln(s"warning: \n $msg")
-    _print(other)
+    pprint.pprintln(other)
     if (warningAsError) {
       -1
     } else {
@@ -59,7 +57,8 @@ class Cli extends Callable[Int] {
 
   def ok[T, O](msg: T, other: O): Int = {
     pprint.pprintln(msg)
-    _print(other)
+    pprint.pprintln(other)
+    0
   }
 
   def print[O](msg: Either[String, String], other: O): Int = {
@@ -75,7 +74,7 @@ class Cli extends Callable[Int] {
       ignoreUnusedPrivateFunctionsWarnings = ignoreUnusedPrivateFunctionsWarnings,
       ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
     )
-    _print(compilerOptions)
+    debug(compilerOptions, s"warningAsError: $warningAsError", s"files: ${files.mkString(",")}")
 
     val rets = for {
       path <- files
