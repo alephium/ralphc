@@ -38,13 +38,13 @@ class Cli extends Callable[Int] {
     0
   }
 
-  def error[O](msg: String, other: O): Int = {
+  def error[T, O](msg: T, other: O): Int = {
     pprint.pprintln(s"error: \n $msg")
     _print(other)
     -1
   }
 
-  def ok[O](msg: String, other: O): Int = {
+  def ok[T, O](msg: T, other: O): Int = {
     pprint.pprintln(msg)
     _print(other)
   }
@@ -73,7 +73,23 @@ class Cli extends Callable[Int] {
           value =>
             value._1.fold(_ =>
               Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret.bytecodeTemplate, value))
-            )(_ => Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret.bytecode, value)))
+            )(_ => Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret.bytecode, value)))(_ =>
+              Compiler
+                .compileProject(value._2, compilerOptions)
+                .fold(
+                  err => error(err.detail, value),
+                  ret => {
+                    var checkVal = 0
+                    if (ret.scripts.nonEmpty) {
+                      checkVal = ok(ret.scripts, value)
+                    }
+                    if (ret.contracts.nonEmpty) {
+                      checkVal = ok(ret.contracts, value)
+                    }
+                    checkVal
+                  }
+                )
+            )
         )
     } yield ret
     rets.sum

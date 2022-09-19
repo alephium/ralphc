@@ -28,15 +28,17 @@ object Parser {
               deps += canonicalPath
             } else {
               codes += line
-              if (line.trim.indexOf("TxContract") == 0 || line.trim.indexOf("Contract") == 0) compile = Contract(codes)
-              if (line.trim.indexOf("TxScript") == 0) compile = Script(codes)
+              // v1.5.0^
+              // if (line.trim.indexOf("TxContract") == 0 || line.trim.indexOf("Contract") == 0) compile = Contract(codes)
+              // if (line.trim.indexOf("TxScript") == 0) compile = Script(codes)
             }
           }
         }
       }
+      compile = Mix(codes)
       files += (path -> Node(
         path,
-        compile.map(_ => codes, _ => codes),
+        compile.map(_ => codes, _ => codes, _ => codes),
         Option.when(deps.nonEmpty)(deps)
       ))
 
@@ -79,7 +81,7 @@ object Parser {
         (
           files(absolutePath).compile,
           dfsNodes.values
-            .map(node => node.code.fold(c => c)(c => c))
+            .map(node => node.code.fold(c => c)(c => c)(c => c))
             .fold("")(_ + _)
         )
       )
