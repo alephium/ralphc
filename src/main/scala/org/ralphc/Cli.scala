@@ -30,6 +30,9 @@ class Cli extends Callable[Int] {
   @Option(names = Array("--ie"), defaultValue = "false", description = Array("ignore external call check warning"))
   var ignoreExternalCallCheckWarnings: Boolean = false
 
+  @Option(names = Array("--warning"), defaultValue = "false", description = Array("consider warnings as errors"))
+  var warningAsError: Boolean = false
+
   def _print[O](other: O): Int = {
     if (debug) {
       pprint.pprintln(files)
@@ -42,6 +45,16 @@ class Cli extends Callable[Int] {
     pprint.pprintln(s"error: \n $msg")
     _print(other)
     -1
+  }
+
+  def warning[T, O](msg: T, other: O): Int = {
+    pprint.pprintln(s"warning: \n $msg")
+    _print(other)
+    if (warningAsError) {
+      -1
+    } else {
+      0
+    }
   }
 
   def ok[T, O](msg: T, other: O): Int = {
@@ -71,22 +84,34 @@ class Cli extends Callable[Int] {
         .fold(
           deps => error("circular dependency：\n" + deps.mkString("\n"), path),
           value =>
-            value._1.fold(_ =>
-              Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value))
-            )(_ => Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value)))(_ =>
+            value._1.fold(_ => Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value)))(_ =>
+              Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value))
+            )(_ =>
               Compiler
                 .compileProject(value._2, compilerOptions)
                 .fold(
                   err => error(err.detail, value),
                   ret => {
-                    var checkVal = 0
-                    if (ret.scripts.nonEmpty) {
-                      checkVal = ok(ret.scripts, value)
+                    var checkWaringAsError = 0
+                    ret.scripts.foreach(script => {
+                      if (script.warnings.nonEmpty) {
+                        warning(script.warnings, "")
+                        checkWaringAsError -= 1
+                      }
+                      ok(script, "")
+                    })
+                    ret.contracts.foreach(contract => {
+                      if (contract.warnings.nonEmpty) {
+                        warning(contract.warnings, "")
+                        checkWaringAsError -= 1
+                      }
+                      ok(contract, "")
+                    })
+                    if (warningAsError) {
+                      checkWaringAsError
+                    } else {
+                      0
                     }
-                    if (ret.contracts.nonEmpty) {
-                      checkVal = ok(ret.contracts, value)
-                    }
-                    checkVal
                   }
                 )
             )
