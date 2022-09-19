@@ -72,8 +72,8 @@ class Cli extends Callable[Int] {
           deps => error("circular dependency：\n" + deps.mkString("\n"), path),
           value =>
             value._1.fold(_ =>
-              Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret.bytecodeTemplate, value))
-            )(_ => Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret.bytecode, value)))(_ =>
+              Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value))
+            )(_ => Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value)))(_ =>
               Compiler
                 .compileProject(value._2, compilerOptions)
                 .fold(
