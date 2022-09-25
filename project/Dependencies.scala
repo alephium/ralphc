@@ -7,5 +7,5 @@ object Dependencies {
 }
 
 object Version {
-  lazy val version = "1.5.0-rc7"
+  lazy val version = "1.5.0-rc9"
 }

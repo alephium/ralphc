@@ -87,4 +87,15 @@ object Parser {
       )
     )
   }
+
+  def getFile(file: File): Array[File] = {
+    val files = file
+      .listFiles()
+      .filter(!_.isDirectory)
+      .filter(t => t.toString.endsWith(".ral"))
+    files ++ file.listFiles().filter(_.isDirectory).flatMap(getFile)
+  }
+
+  def project(rootPath: String): String = getFile(new File(rootPath)).map(Source.fromFile(_).mkString).mkString
+
 }

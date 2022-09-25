@@ -3,8 +3,9 @@ package org.ralphc
 import java.util.concurrent.Callable
 import picocli.CommandLine.{Command, Option}
 import org.alephium.protocol.vm.lang.CompilerOptions
+import org.alephium.api.model.CompileProjectResult
 
-@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc7"), description = Array("compiler ralph language."))
+@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc9"), description = Array("compiler ralph language."))
 class Cli extends Callable[Int] {
   @Option(names = Array("-f"))
   val files: Array[String] = Array.empty
@@ -32,6 +33,9 @@ class Cli extends Callable[Int] {
 
   @Option(names = Array("-w", "--warning"), defaultValue = "false", description = Array("Consider warnings as errors"))
   var warningAsError: Boolean = false
+
+  @Option(names = Array("-p", "--project"), defaultValue = "", description = Array("Project path"))
+  var projectDir: String = ""
 
   def debug[O](values: O*): Unit = {
     if (debug) {
@@ -74,48 +78,61 @@ class Cli extends Callable[Int] {
       ignoreUnusedPrivateFunctionsWarnings = ignoreUnusedPrivateFunctionsWarnings,
       ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
     )
-    debug(compilerOptions, s"warningAsError: $warningAsError", s"files: ${files.mkString(",")}")
+    debug(compilerOptions, s"projectDir: $projectDir", s"warningAsError: $warningAsError", s"files: ${files.mkString(",")}")
 
-    val rets = for {
-      path <- files
-      ret = Parser
-        .Parser(path)
+    if (projectDir.isEmpty) {
+      val rets = for {
+        path <- files
+        ret = Parser
+          .Parser(path)
+          .fold(
+            deps => error("circular dependency：\n" + deps.mkString("\n"), path),
+            value =>
+              value._1.fold(_ => Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value)))(_ =>
+                Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value))
+              )(_ =>
+                Compiler
+                  .compileProject(value._2, compilerOptions)
+                  .fold(
+                    err => error(err.detail, value),
+                    ret => result(ret)
+                  )
+              )
+          )
+      } yield ret
+      rets.sum
+    } else {
+      val codes = Parser.project(projectDir)
+      debug(codes)
+      Compiler
+        .compileProject(codes, compilerOptions)
         .fold(
-          deps => error("circular dependency：\n" + deps.mkString("\n"), path),
-          value =>
-            value._1.fold(_ => Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value)))(_ =>
-              Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value))
-            )(_ =>
-              Compiler
-                .compileProject(value._2, compilerOptions)
-                .fold(
-                  err => error(err.detail, value),
-                  ret => {
-                    var checkWaringAsError = 0
-                    ret.scripts.foreach(script => {
-                      if (script.warnings.nonEmpty) {
-                        warning(script.warnings, "")
-                        checkWaringAsError -= 1
-                      }
-                      ok(script, "")
-                    })
-                    ret.contracts.foreach(contract => {
-                      if (contract.warnings.nonEmpty) {
-                        warning(contract.warnings, "")
-                        checkWaringAsError -= 1
-                      }
-                      ok(contract, "")
-                    })
-                    if (warningAsError) {
-                      checkWaringAsError
-                    } else {
-                      0
-                    }
-                  }
-                )
-            )
+          err => error(err.detail, projectDir),
+          ret => result(ret)
         )
-    } yield ret
-    rets.sum
+    }
+  }
+
+  def result(ret: CompileProjectResult): Int = {
+    var checkWaringAsError = 0
+    ret.scripts.foreach(script => {
+      if (script.warnings.nonEmpty) {
+        warning(script.warnings, "")
+        checkWaringAsError -= 1
+      }
+      ok(script, "")
+    })
+    ret.contracts.foreach(contract => {
+      if (contract.warnings.nonEmpty) {
+        warning(contract.warnings, "")
+        checkWaringAsError -= 1
+      }
+      ok(contract, "")
+    })
+    if (warningAsError) {
+      checkWaringAsError
+    } else {
+      0
+    }
   }
 }

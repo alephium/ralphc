@@ -10,7 +10,7 @@ object Compiler {
   def compileScript(code: String, compilerOptions: CompilerOptions = CompilerOptions.Default): Try[CompileScriptResult] = {
     lang.Compiler
       .compileTxScriptFull(code, compilerOptions = compilerOptions)
-      .map(p => CompileScriptResult.from(p._1, p._2, p._3))
+      .map(CompileScriptResult.from)
       .left
       .map(error => failed(error.toString))
   }
@@ -19,7 +19,7 @@ object Compiler {
   def compileContract(code: String, compilerOptions: CompilerOptions = CompilerOptions.Default): Try[CompileContractResult] = {
     lang.Compiler
       .compileContractFull(code, compilerOptions = compilerOptions)
-      .map(p => CompileContractResult.from(p._1, p._2, p._3))
+      .map(CompileContractResult.from)
       .left
       .map(error => failed(error.toString))
   }
