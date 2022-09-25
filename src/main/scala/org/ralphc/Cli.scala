@@ -4,6 +4,8 @@ import java.util.concurrent.Callable
 import picocli.CommandLine.{Command, Option}
 import org.alephium.protocol.vm.lang.CompilerOptions
 import org.alephium.api.model.CompileProjectResult
+import java.io.PrintWriter
+import java.util.Date
 
 @Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc9"), description = Array("compiler ralph language."))
 class Cli extends Callable[Int] {
@@ -115,24 +117,37 @@ class Cli extends Callable[Int] {
 
   def result(ret: CompileProjectResult): Int = {
     var checkWaringAsError = 0
+    var codes              = ""
     ret.scripts.foreach(script => {
       if (script.warnings.nonEmpty) {
-        warning(script.warnings, "")
+        warning(script.warnings, s"location range: $script.name")
         checkWaringAsError -= 1
       }
-      ok(script, "")
+      codes += s"${script.bytecodeTemplate} \n"
+      debug(script)
     })
     ret.contracts.foreach(contract => {
       if (contract.warnings.nonEmpty) {
-        warning(contract.warnings, "")
+        warning(contract.warnings, s"location range: $contract.name")
         checkWaringAsError -= 1
       }
-      ok(contract, "")
+      codes += s"${contract.bytecode} \n"
+      debug(contract)
     })
+    saveAst(codes)
     if (warningAsError) {
       checkWaringAsError
     } else {
       0
     }
+  }
+
+  def saveAst(codes: String): Unit = {
+    import java.nio.file.Paths
+    val now    = new Date()
+    val path   = Paths.get(projectDir, s"${now.toString}.ast")
+    val writer = new PrintWriter(path.toFile)
+    writer.write(codes)
+    writer.close()
   }
 }
