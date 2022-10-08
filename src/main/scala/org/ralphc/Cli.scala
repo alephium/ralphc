@@ -7,7 +7,7 @@ import org.alephium.api.model.CompileProjectResult
 import java.io.PrintWriter
 import java.util.Date
 
-@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc9"), description = Array("compiler ralph language."))
+@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc11"), description = Array("compiler ralph language."))
 class Cli extends Callable[Int] {
   @Option(names = Array("-f"))
   val files: Array[String] = Array.empty
