@@ -1,6 +1,6 @@
 
 build:
-	@sbt compile
+	sbt compile
 
 assembly:
 	sbt assembly
@@ -9,19 +9,20 @@ run:
 	sbt run
 
 package:
-	@sbt package
+	sbt package
 
 docker:
-
+	docker build -f Dockerfile -t ralphc:latest  .
+	
 clean:
-	@sbt clean
+	sbt clean
 	rm -rf .metals target .bloop .bsp
 
 fmt:
-	@sbt scalafmt
+	sbt scalafmt
 
 check:
-	@sbt scalafmtCheck
+	sbt scalafmtCheck
 
 test:
 	sbt test

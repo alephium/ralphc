@@ -29,16 +29,26 @@ make tests
 java -jar ralphc.jar 
 ```
 ```shell   
-Usage: ralphc [-dhV] [-f=<files>]...
+Usage: ralphc [-dhVw] [--ic] [--ie] [--if] [--ip] [--ir] [--iv]
+              [-p=<projectDir>] [-f=<files>]...
 compiler ralph language.
-  -d, --debug     debug mode
+  -d, --debug     Debug mode
   -f=<files>
   -h, --help      Show this help message and exit.
+      --ic        Ignore unused constants warning
+      --ie        Ignore external call check warning
+      --if        Ignore unused fields warning
+      --ip        Ignore unused private functions warning
+      --ir        Ignore readonly check warning
+      --iv        Ignore unused variables warning
+  -p, --project=<projectDir>
+                  Project path
   -V, --version   Print version information and exit.
+  -w, --warning   Consider warnings as errors
 ```
 
 
-## Thanks
+## References
 [alephium](https://github.com/alephium/alephium)
 
 
