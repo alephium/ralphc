@@ -1,11 +1,16 @@
 package org.ralphc
 
+import java.io.PrintWriter
 import java.util.concurrent.Callable
 import picocli.CommandLine.{Command, Option}
 import org.alephium.protocol.vm.lang.CompilerOptions
 import org.alephium.api.model.CompileProjectResult
-import java.io.PrintWriter
-import java.util.Date
+import org.alephium.api.model._
+import org.alephium.json.Json._
+import org.alephium.api.UtilJson._
+import org.alephium.json.Json.ReadWriter
+import org.alephium.protocol.Hash
+import org.alephium.util.AVector
 
 @Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc11"), description = Array("compiler ralph language."))
 class Cli extends Callable[Int] {
@@ -46,14 +51,14 @@ class Cli extends Callable[Int] {
   }
 
   def error[T, O](msg: T, other: O): Int = {
-    pprint.pprintln(s"error: \n $msg ")
     pprint.pprintln(other)
+    pprint.pprintln(s"error: \n $msg \n")
     -1
   }
 
   def warning[T, O](msg: T, other: O): Int = {
-    pprint.pprintln(s"warning: \n $msg")
     pprint.pprintln(other)
+    pprint.pprintln(s"warning: \n $msg \n")
     if (warningAsError) {
       -1
     } else {
@@ -62,8 +67,8 @@ class Cli extends Callable[Int] {
   }
 
   def ok[T, O](msg: T, other: O): Int = {
-    pprint.pprintln(msg)
     pprint.pprintln(other)
+    pprint.pprintln(msg)
     0
   }
 
@@ -116,25 +121,28 @@ class Cli extends Callable[Int] {
   }
 
   def result(ret: CompileProjectResult): Int = {
+    implicit val hashWriter: Writer[Hash]                                       = StringWriter.comap[Hash](_.toHexString)
+    implicit val hashReader: Reader[Hash]                                       = byteStringReader.map(Hash.from(_).get)
+    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig] = macroRW
+    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]       = macroRW
+    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]         = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
+    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]     = macroRW
+    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]         = macroRW
+    implicit val compileContractResultRW: ReadWriter[CompileContractResult]     = macroRW
+    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]       = macroRW
+
+    val ast = write(ret, 2)
+    saveAst(ast)
+    debug(ast)
     var checkWaringAsError = 0
-    var codes              = ""
-    ret.scripts.foreach(script => {
-      if (script.warnings.nonEmpty) {
-        warning(script.warnings, s"location range: $script.name")
+    val each = (warnings: AVector[String], name: String) => {
+      if (warnings.nonEmpty) {
+        warning(write(warnings, 2), name)
         checkWaringAsError -= 1
       }
-      codes += s"${script.bytecodeTemplate} \n"
-      debug(script)
-    })
-    ret.contracts.foreach(contract => {
-      if (contract.warnings.nonEmpty) {
-        warning(contract.warnings, s"location range: $contract.name")
-        checkWaringAsError -= 1
-      }
-      codes += s"${contract.bytecode} \n"
-      debug(contract)
-    })
-    saveAst(codes)
+    }
+    ret.scripts.foreach(script => each(script.warnings, s"script.name: ${script.name}"))
+    ret.contracts.foreach(contract => each(contract.warnings, s"contract.name: ${contract.name}"))
     if (warningAsError) {
       checkWaringAsError
     } else {
@@ -144,8 +152,7 @@ class Cli extends Callable[Int] {
 
   def saveAst(codes: String): Unit = {
     import java.nio.file.Paths
-    val now    = new Date()
-    val path   = Paths.get(projectDir, s"${now.toString}.ast")
+    val path   = Paths.get(projectDir, "project.artifacts.json")
     val writer = new PrintWriter(path.toFile)
     writer.write(codes)
     writer.close()
