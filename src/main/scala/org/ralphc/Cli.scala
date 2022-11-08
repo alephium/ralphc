@@ -12,7 +12,7 @@ import org.alephium.json.Json.ReadWriter
 import org.alephium.protocol.Hash
 import org.alephium.util.AVector
 
-@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0-rc11"), description = Array("compiler ralph language."))
+@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0"), description = Array("compiler ralph language."))
 class Cli extends Callable[Int] {
   @Option(names = Array("-f"))
   val files: Array[String] = Array.empty
