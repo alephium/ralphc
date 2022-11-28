@@ -1,14 +1,46 @@
 package org.ralphc
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import scala.collection.immutable
 import scala.collection.mutable
 import scala.io.Source
 import scala.util.Using
+import org.alephium.antlr4.ralph.{RalphLexer, RalphParser}
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import org.alephium.crypto
+import org.alephium.protocol.Hash
+import org.alephium.api.model.CompileProjectResult
+import org.alephium.util.AVector
 
 object Parser {
   var files: mutable.Map[String, Node] = mutable.Map.empty // all file node
+
+  val infos = mutable.Map.empty[String, CodeInfo]
+
+  val infosPath = mutable.Map.empty[String, (Path, Path)]
+
+  var projectDir = "contracts"
+
+  var artifacts = "artifacts"
+
+  def visitor(path: Path): Unit = {
+    val charStream     = CharStreams.fromPath(path)
+    val lexer          = new RalphLexer(charStream)
+    val tokens         = new CommonTokenStream(lexer)
+    val parser         = new RalphParser(tokens)
+    val visitor        = new Visitor()
+    val sourceCode     = Source.fromFile(path.toFile).mkString
+    val sourceCodeHash = crypto.Sha256.hash(sourceCode).toHexString
+    visitor
+      .visitSourceFile(parser.sourceFile())
+      .foreach(name => {
+        val sourcePath = path
+        val savePath   = Paths.get(sourcePath.toString.replace(projectDir, artifacts) + ".json")
+        infosPath.addOne(name, (sourcePath, savePath))
+        infos.addOne(name, CodeInfo(sourceCodeHash, CompileProjectResult.Patch(""), Hash.zero, AVector()))
+      })
+  }
 
   def parser(path: String): Unit = {
     if (!files.contains(path)) {
@@ -96,6 +128,13 @@ object Parser {
     files ++ file.listFiles().filter(_.isDirectory).flatMap(getFile)
   }
 
-  def project(rootPath: String): String = getFile(new File(rootPath)).map(Source.fromFile(_).mkString).mkString
+  def project(rootPath: String): String = {
+    getFile(new File(rootPath))
+      .map(file => {
+        visitor(file.toPath)
+        Source.fromFile(file).mkString
+      })
+      .mkString
+  }
 
 }
