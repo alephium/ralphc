@@ -121,17 +121,47 @@ class Cli extends Callable[Int] {
   }
 
   def result(ret: CompileProjectResult): Int = {
-    implicit val hashWriter: Writer[Hash]                                       = StringWriter.comap[Hash](_.toHexString)
-    implicit val hashReader: Reader[Hash]                                       = byteStringReader.map(Hash.from(_).get)
-    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig] = macroRW
-    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]       = macroRW
-    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]         = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
-    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]     = macroRW
-    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]         = macroRW
-    implicit val compileContractResultRW: ReadWriter[CompileContractResult]     = macroRW
-    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]       = macroRW
+    implicit val hashWriter: Writer[Hash]                                         = StringWriter.comap[Hash](_.toHexString)
+    implicit val hashReader: Reader[Hash]                                         = byteStringReader.map(Hash.from(_).get)
+    implicit val compilerOptionsRW: ReadWriter[CompilerOptions]                   = macroRW
+    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]           = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
+    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]       = macroRW
+    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig]   = macroRW
+    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]         = macroRW
+    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]           = macroRW
+    implicit val compileContractResultRW: ReadWriter[CompileContractResult]       = macroRW
+    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]         = macroRW
+    implicit val compileScriptResultSigRW: ReadWriter[CompileScriptResultSig]     = macroRW
+    implicit val compileContractResultSigRW: ReadWriter[CompileContractResultSig] = macroRW
+    implicit val compileProjectResultSigRW: ReadWriter[CompileProjectResultSig]   = macroRW
 
-    val ast = write(ret, 2)
+    val scripts = ret.scripts.map(s =>
+      CompileScriptResultSig(
+        s.version,
+        s.name,
+        s.bytecodeTemplate,
+        s.bytecodeDebugPatch,
+        s.fields,
+        s.functions,
+        s.warnings
+      )
+    )
+    val contracts = ret.contracts.map(c =>
+      CompileContractResultSig(
+        c.version,
+        c.name,
+        c.bytecode,
+        c.bytecodeDebugPatch,
+        c.codeHash,
+        c.codeHashDebug,
+        c.fields,
+        c.functions,
+        c.events,
+        c.warnings
+      )
+    )
+
+    val ast = write(CompileProjectResultSig(contracts, scripts), 2)
     saveAst(ast)
     debug(ast)
     var checkWaringAsError = 0
