@@ -3,7 +3,7 @@ package org.ralphc
 import java.io.PrintWriter
 import java.util.concurrent.Callable
 import picocli.CommandLine.{Command, Option}
-import org.alephium.protocol.vm.lang.CompilerOptions
+import org.alephium.ralph.CompilerOptions
 import org.alephium.api.model.CompileProjectResult
 import org.alephium.api.model._
 import org.alephium.json.Json._
@@ -11,8 +11,9 @@ import org.alephium.api.UtilJson._
 import org.alephium.json.Json.ReadWriter
 import org.alephium.protocol.Hash
 import org.alephium.util.AVector
+import java.nio.file.{Path, Paths}
 
-@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.0"), description = Array("compiler ralph language."))
+@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.4"), description = Array("compiler ralph language."))
 class Cli extends Callable[Int] {
   @Option(names = Array("-f"))
   val files: Array[String] = Array.empty
@@ -29,8 +30,8 @@ class Cli extends Callable[Int] {
   @Option(names = Array("--if"), defaultValue = "false", description = Array("Ignore unused fields warning"))
   var ignoreUnusedFieldsWarnings: Boolean = false
 
-  @Option(names = Array("--ir"), defaultValue = "false", description = Array("Ignore readonly check warning"))
-  var ignoreReadonlyCheckWarnings: Boolean = false
+  @Option(names = Array("--ir"), defaultValue = "false", description = Array("Ignore update field check warning"))
+  var ignoreUpdateFieldsCheckWarnings: Boolean = false
 
   @Option(names = Array("--ip"), defaultValue = "false", description = Array("Ignore unused private functions warning"))
   var ignoreUnusedPrivateFunctionsWarnings: Boolean = false
@@ -43,6 +44,9 @@ class Cli extends Callable[Int] {
 
   @Option(names = Array("-p", "--project"), defaultValue = "", description = Array("Project path"))
   var projectDir: String = ""
+
+  @Option(names = Array("-a", "--artifacts"), defaultValue = "artifacts", description = Array("artifacts directory"))
+  var artifacts = "artifacts"
 
   def debug[O](values: O*): Unit = {
     if (debug) {
@@ -72,19 +76,20 @@ class Cli extends Callable[Int] {
     0
   }
 
+  val compilerOptions = CompilerOptions(
+    ignoreUnusedConstantsWarnings = ignoreUnusedConstantsWarnings,
+    ignoreUnusedVariablesWarnings = ignoreUnusedVariablesWarnings,
+    ignoreUnusedFieldsWarnings = ignoreUnusedFieldsWarnings,
+    ignoreUpdateFieldsCheckWarnings = ignoreUpdateFieldsCheckWarnings,
+    ignoreUnusedPrivateFunctionsWarnings = ignoreUnusedPrivateFunctionsWarnings,
+    ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
+  )
+
   def print[O](msg: Either[String, String], other: O): Int = {
     msg.fold(ok(_, other), error(_, other))
   }
 
   override def call(): Int = {
-    val compilerOptions = CompilerOptions(
-      ignoreUnusedConstantsWarnings = ignoreUnusedConstantsWarnings,
-      ignoreUnusedVariablesWarnings = ignoreUnusedVariablesWarnings,
-      ignoreUnusedFieldsWarnings = ignoreUnusedFieldsWarnings,
-      ignoreReadonlyCheckWarnings = ignoreReadonlyCheckWarnings,
-      ignoreUnusedPrivateFunctionsWarnings = ignoreUnusedPrivateFunctionsWarnings,
-      ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
-    )
     debug(compilerOptions, s"projectDir: $projectDir", s"warningAsError: $warningAsError", s"files: ${files.mkString(",")}")
 
     if (projectDir.isEmpty) {
@@ -121,19 +126,68 @@ class Cli extends Callable[Int] {
   }
 
   def result(ret: CompileProjectResult): Int = {
-    implicit val hashWriter: Writer[Hash]                                       = StringWriter.comap[Hash](_.toHexString)
-    implicit val hashReader: Reader[Hash]                                       = byteStringReader.map(Hash.from(_).get)
-    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig] = macroRW
-    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]       = macroRW
-    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]         = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
-    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]     = macroRW
-    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]         = macroRW
-    implicit val compileContractResultRW: ReadWriter[CompileContractResult]     = macroRW
-    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]       = macroRW
+    implicit val hashWriter: Writer[Hash]                                         = StringWriter.comap[Hash](_.toHexString)
+    implicit val hashReader: Reader[Hash]                                         = byteStringReader.map(Hash.from(_).get)
+    implicit val compilerOptionsRW: ReadWriter[CompilerOptions]                   = macroRW
+    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]           = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
+    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]       = macroRW
+    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig]   = macroRW
+    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]         = macroRW
+    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]           = macroRW
+    implicit val compileContractResultRW: ReadWriter[CompileContractResult]       = macroRW
+    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]         = macroRW
+    implicit val compileScriptResultSigRW: ReadWriter[CompileScriptResultSig]     = macroRW
+    implicit val compileContractResultSigRW: ReadWriter[CompileContractResultSig] = macroRW
+    implicit val compileProjectResultSigRW: ReadWriter[CompileProjectResultSig]   = macroRW
+    implicit val codeInfoRW: ReadWriter[CodeInfo]                                 = macroRW
+    implicit val artifactsRW: ReadWriter[Artifacts]                               = macroRW
 
-    val ast = write(ret, 2)
-    saveAst(ast)
+    val scripts = ret.scripts.map(s => {
+      val script = CompileScriptResultSig(
+        s.version,
+        s.name,
+        s.bytecodeTemplate,
+        s.fields,
+        s.functions
+      )
+
+      val value = Parser.infos(s.name)
+      value.warnings = s.warnings
+      value.bytecodeDebugPatch = s.bytecodeDebugPatch
+      Parser.infos.addOne(s.name, value)
+
+      val code = write(script, 2)
+      saveResultSig(code, Parser.infosPath(s.name)._2)
+      script
+    })
+    val contracts = ret.contracts.map(c => {
+      val contract = CompileContractResultSig(
+        c.version,
+        c.name,
+        c.bytecode,
+        c.codeHash,
+        c.fields,
+        c.events,
+        c.functions
+      )
+      val value = Parser.infos(c.name)
+      value.warnings = c.warnings
+      value.bytecodeDebugPatch = c.bytecodeDebugPatch
+      value.codeHashDebug = c.codeHashDebug
+      Parser.infos.addOne(c.name, value)
+
+      val code = write(contract, 2)
+      saveResultSig(code, Parser.infosPath(c.name)._2)
+      contract
+    })
+
+    var ast = write(CompileProjectResultSig(contracts, scripts), 2)
     debug(ast)
+//    saveAst(ast)
+
+    val artifacts = write(Artifacts(compilerOptions, Parser.infos.toMap), 2)
+    saveProjectArtifacts(artifacts)
+
     var checkWaringAsError = 0
     val each = (warnings: AVector[String], name: String) => {
       if (warnings.nonEmpty) {
@@ -150,11 +204,20 @@ class Cli extends Callable[Int] {
     }
   }
 
-  def saveAst(codes: String): Unit = {
-    import java.nio.file.Paths
-    val path   = Paths.get(projectDir, "project.artifacts.json")
+  def saveAst(codes: String): Unit = saveResultSig(codes, Paths.get(projectDir, "project.artifacts.json"))
+
+  def saveProjectArtifacts(codes: String): Unit = saveResultSig(codes, Paths.get(artifactsPath().toString, ".project.json"))
+
+  def saveResultSig(code: String, path: Path): Unit = {
+    path.getParent.toFile.mkdirs()
     val writer = new PrintWriter(path.toFile)
-    writer.write(codes)
+    writer.write(code)
     writer.close()
   }
+
+  def contractPath(): Path = Paths.get(projectDir)
+
+  def rootPath(): Path = contractPath().getParent
+
+  def artifactsPath(): Path = rootPath().resolve(artifacts)
 }
