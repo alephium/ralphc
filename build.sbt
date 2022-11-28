@@ -16,6 +16,7 @@ lazy val root = (project in file("."))
       utilCore,
       "org.alephium" % "alephium-protocol_2.13" % Version.version,
       "org.alephium" % "alephium-api_2.13" % Version.version,
+      "org.alephium" % "alephium-ralph_2.13" % Version.version,
       "com.lihaoyi" %% "pprint" % "0.7.0",
       "info.picocli" % "picocli" % "4.6.3"
     )

@@ -3,7 +3,7 @@ package org.ralphc
 import java.io.PrintWriter
 import java.util.concurrent.Callable
 import picocli.CommandLine.{Command, Option}
-import org.alephium.protocol.vm.lang.CompilerOptions
+import org.alephium.ralph.CompilerOptions
 import org.alephium.api.model.CompileProjectResult
 import org.alephium.api.model._
 import org.alephium.json.Json._
@@ -29,8 +29,8 @@ class Cli extends Callable[Int] {
   @Option(names = Array("--if"), defaultValue = "false", description = Array("Ignore unused fields warning"))
   var ignoreUnusedFieldsWarnings: Boolean = false
 
-  @Option(names = Array("--ir"), defaultValue = "false", description = Array("Ignore readonly check warning"))
-  var ignoreReadonlyCheckWarnings: Boolean = false
+  @Option(names = Array("--ir"), defaultValue = "false", description = Array("Ignore update field check warning"))
+  var ignoreUpdateFieldsCheckWarnings: Boolean = false
 
   @Option(names = Array("--ip"), defaultValue = "false", description = Array("Ignore unused private functions warning"))
   var ignoreUnusedPrivateFunctionsWarnings: Boolean = false
@@ -81,7 +81,7 @@ class Cli extends Callable[Int] {
       ignoreUnusedConstantsWarnings = ignoreUnusedConstantsWarnings,
       ignoreUnusedVariablesWarnings = ignoreUnusedVariablesWarnings,
       ignoreUnusedFieldsWarnings = ignoreUnusedFieldsWarnings,
-      ignoreReadonlyCheckWarnings = ignoreReadonlyCheckWarnings,
+      ignoreUpdateFieldsCheckWarnings = ignoreUpdateFieldsCheckWarnings,
       ignoreUnusedPrivateFunctionsWarnings = ignoreUnusedPrivateFunctionsWarnings,
       ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
     )
