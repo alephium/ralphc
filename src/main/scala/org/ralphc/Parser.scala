@@ -20,9 +20,9 @@ object Parser {
 
   val infosPath = mutable.Map.empty[String, (Path, Path)]
 
-  var projectDir = "contracts"
+  var projectDirName = "contracts"
 
-  var artifacts = "artifacts"
+  var artifactsName = "artifacts"
 
   def visitor(path: Path): Unit = {
     val charStream     = CharStreams.fromPath(path)
@@ -36,7 +36,7 @@ object Parser {
       .visitSourceFile(parser.sourceFile())
       .foreach(name => {
         val sourcePath = path
-        val savePath   = Paths.get(sourcePath.toString.replace(projectDir, artifacts) + ".json")
+        val savePath   = Paths.get(sourcePath.toString.replace(projectDirName, artifactsName) + ".json")
         infosPath.addOne(name, (sourcePath, savePath))
         infos.addOne(name, CodeInfo(sourceCodeHash, CompileProjectResult.Patch(""), Hash.zero, AVector()))
       })
@@ -128,7 +128,11 @@ object Parser {
     files ++ file.listFiles().filter(_.isDirectory).flatMap(getFile)
   }
 
-  def project(rootPath: String): String = {
+  def project(rootPath: String, artifactsName: String): String = {
+    this.artifactsName = artifactsName
+
+    this.projectDirName = new File(rootPath).getName
+
     getFile(new File(rootPath))
       .map(file => {
         visitor(file.toPath)

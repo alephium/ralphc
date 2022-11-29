@@ -42,10 +42,10 @@ class Cli extends Callable[Int] {
   @Option(names = Array("-w", "--warning"), defaultValue = "false", description = Array("Consider warnings as errors"))
   var warningAsError: Boolean = false
 
-  @Option(names = Array("-p", "--project"), defaultValue = "", description = Array("Project path"))
+  @Option(names = Array("-p", "--project"), defaultValue = "contracts", description = Array("Project path"))
   var projectDir: String = ""
 
-  @Option(names = Array("-a", "--artifacts"), defaultValue = "artifacts", description = Array("artifacts directory"))
+  @Option(names = Array("-a", "--artifacts"), defaultValue = "artifacts", description = Array("artifacts directory name"))
   var artifacts = "artifacts"
 
   def debug[O](values: O*): Unit = {
@@ -114,7 +114,7 @@ class Cli extends Callable[Int] {
       } yield ret
       rets.sum
     } else {
-      val codes = Parser.project(projectDir)
+      val codes = Parser.project(projectDir, artifacts)
       debug(codes)
       Compiler
         .compileProject(codes, compilerOptions)
