@@ -18,3 +18,4 @@ log
 project/project/
 ralphc.jar
 /tests/alephium-web3/contracts/project.artifacts.json
+gen
