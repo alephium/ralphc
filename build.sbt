@@ -30,10 +30,3 @@ assemblyMergeStrategy in assembly := {
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
-
-enablePlugins(Antlr4Plugin)
-antlr4PackageName in Antlr4 := Some("org.alephium.antlr4.ralph")
-antlr4Version in Antlr4 := "4.10.1" // default: 4.8-1
-antlr4GenListener in Antlr4 := true // default: true
-antlr4GenVisitor in Antlr4 := true // default: false
-antlr4TreatWarningsAsErrors in Antlr4 := true // default: false
