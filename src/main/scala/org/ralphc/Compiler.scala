@@ -1,29 +1,53 @@
 package org.ralphc
 
+import java.io.File
+import java.nio.file.Paths
+import scala.collection.mutable
+import scala.io.Source
+import org.alephium.crypto
 import org.alephium.api.{Try, failed}
-import org.alephium.api.model.{CompileContractResult, CompileScriptResult, CompileProjectResult}
+import org.alephium.api.model.CompileProjectResult
 import org.alephium.ralph.CompilerOptions
 import org.alephium.ralph
+import org.alephium.protocol.Hash
+import org.alephium.util.AVector
 
 object Compiler {
-  @SuppressWarnings(Array("org.wartremover.warts.ToString"))
-  def compileScript(code: String, compilerOptions: CompilerOptions = CompilerOptions.Default): Try[CompileScriptResult] = {
-    ralph.Compiler
-      .compileTxScriptFull(code, compilerOptions = compilerOptions)
-      .map(CompileScriptResult.from)
-      .left
-      .map(error => failed(error.toString))
+  val metaInfos      = mutable.Map.empty[String, MetaInfo]
+  var projectDir     = "contracts"
+  var projectDirName = "contracts"
+  var artifactsName  = "artifacts"
+
+  def getFile(file: File): Array[File] = {
+    val files = file
+      .listFiles()
+      .filter(!_.isDirectory)
+      .filter(t => t.toString.endsWith(".ral"))
+    files ++ file.listFiles().filter(_.isDirectory).flatMap(getFile)
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.ToString"))
-  def compileContract(code: String, compilerOptions: CompilerOptions = CompilerOptions.Default): Try[CompileContractResult] = {
-    ralph.Compiler
-      .compileContractFull(code, compilerOptions = compilerOptions)
-      .map(CompileContractResult.from)
-      .left
-      .map(error => failed(error.toString))
+  def projectCodes(rootPath: String, artifactsName: String): String = {
+    this.projectDir = rootPath
+    this.artifactsName = artifactsName
+    this.projectDirName = new File(rootPath).getName
+    getFile(new File(rootPath))
+      .map(file => {
+        val sourceCode     = Source.fromFile(file).mkString
+        val sourceCodeHash = crypto.Sha256.hash(sourceCode).toHexString
+        TypedMatcher
+          .matcher(sourceCode)
+          .map(_.getName)
+          .map(name => {
+            val path       = file.toPath.toString
+            val sourcePath = Paths.get(path.substring(path.indexOf(this.projectDirName)))
+            val savePath   = Paths.get(sourcePath.toString.replace(projectDirName, artifactsName) + ".json")
+            val meta       = MetaInfo(name, sourcePath, savePath, CodeInfo(sourceCodeHash, CompileProjectResult.Patch(""), Hash.zero, AVector()))
+            metaInfos.addOne(name, meta)
+          })
+        sourceCode
+      })
+      .mkString
   }
-
   @SuppressWarnings(Array("org.wartremover.warts.ToString"))
   def compileProject(code: String, compilerOptions: CompilerOptions = CompilerOptions.Default): Try[CompileProjectResult] = {
     ralph.Compiler

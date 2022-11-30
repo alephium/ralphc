@@ -13,7 +13,7 @@ import org.alephium.protocol.Hash
 import org.alephium.util.AVector
 import java.nio.file.{Path, Paths}
 
-@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.4"), description = Array("compiler ralph language."))
+@Command(name = "ralphc", mixinStandardHelpOptions = true, version = Array("ralphc 1.5.4"), description = Array("compiler ralph language"))
 class Cli extends Callable[Int] {
   @Option(names = Array("-f"))
   val files: Array[String] = Array.empty
@@ -43,9 +43,9 @@ class Cli extends Callable[Int] {
   var warningAsError: Boolean = false
 
   @Option(names = Array("-p", "--project"), defaultValue = "contracts", description = Array("Project path"))
-  var projectDir: String = ""
+  var projectDir: String = "contracts"
 
-  @Option(names = Array("-a", "--artifacts"), defaultValue = "artifacts", description = Array("artifacts directory name"))
+  @Option(names = Array("-a", "--artifacts"), defaultValue = "artifacts", description = Array("Artifacts directory name"))
   var artifacts = "artifacts"
 
   def debug[O](values: O*): Unit = {
@@ -76,7 +76,7 @@ class Cli extends Callable[Int] {
     0
   }
 
-  val compilerOptions = CompilerOptions(
+  def compilerOptions(): CompilerOptions = CompilerOptions(
     ignoreUnusedConstantsWarnings = ignoreUnusedConstantsWarnings,
     ignoreUnusedVariablesWarnings = ignoreUnusedVariablesWarnings,
     ignoreUnusedFieldsWarnings = ignoreUnusedFieldsWarnings,
@@ -85,83 +85,56 @@ class Cli extends Callable[Int] {
     ignoreExternalCallCheckWarnings = ignoreExternalCallCheckWarnings
   )
 
-  def print[O](msg: Either[String, String], other: O): Int = {
-    msg.fold(ok(_, other), error(_, other))
-  }
-
   override def call(): Int = {
-    debug(compilerOptions, s"projectDir: $projectDir", s"warningAsError: $warningAsError", s"files: ${files.mkString(",")}")
-
-    if (projectDir.isEmpty) {
-      val rets = for {
-        path <- files
-        ret = Parser
-          .Parser(path)
-          .fold(
-            deps => error("circular dependency：\n" + deps.mkString("\n"), path),
-            value =>
-              value._1.fold(_ => Compiler.compileScript(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value)))(_ =>
-                Compiler.compileContract(value._2, compilerOptions).fold(err => error(err.detail, value), ret => ok(ret, value))
-              )(_ =>
-                Compiler
-                  .compileProject(value._2, compilerOptions)
-                  .fold(
-                    err => error(err.detail, value),
-                    ret => result(ret)
-                  )
-              )
-          )
-      } yield ret
-      rets.sum
-    } else {
-      val codes = Parser.project(projectDir, artifacts)
-      debug(codes)
+    debug(compilerOptions(), s"projectDir: $projectDir", s"warningAsError: $warningAsError", s"files: ${files.mkString(",")}")
+    if (projectDir.nonEmpty) {
+      val codes = Compiler.projectCodes(projectDir, artifacts)
       Compiler
-        .compileProject(codes, compilerOptions)
+        .compileProject(codes, compilerOptions())
         .fold(
           err => error(err.detail, projectDir),
           ret => result(ret)
         )
+    } else {
+      -1
     }
   }
 
   def result(ret: CompileProjectResult): Int = {
-    implicit val hashWriter: Writer[Hash]                                         = StringWriter.comap[Hash](_.toHexString)
-    implicit val hashReader: Reader[Hash]                                         = byteStringReader.map(Hash.from(_).get)
-    implicit val compilerOptionsRW: ReadWriter[CompilerOptions]                   = macroRW
-    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]           = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
-    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]       = macroRW
-    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig]   = macroRW
-    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]         = macroRW
-    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]           = macroRW
-    implicit val compileContractResultRW: ReadWriter[CompileContractResult]       = macroRW
-    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]         = macroRW
-    implicit val compileScriptResultSigRW: ReadWriter[CompileScriptResultSig]     = macroRW
-    implicit val compileContractResultSigRW: ReadWriter[CompileContractResultSig] = macroRW
-    implicit val compileProjectResultSigRW: ReadWriter[CompileProjectResultSig]   = macroRW
-    implicit val codeInfoRW: ReadWriter[CodeInfo]                                 = macroRW
-    implicit val artifactsRW: ReadWriter[Artifacts]                               = macroRW
+    implicit val hashWriter: Writer[Hash]                                       = StringWriter.comap[Hash](_.toHexString)
+    implicit val hashReader: Reader[Hash]                                       = byteStringReader.map(Hash.from(_).get)
+    implicit val compilerOptionsRW: ReadWriter[CompilerOptions]                 = macroRW
+    implicit val compilePatchRW: ReadWriter[CompileProjectResult.Patch]         = readwriter[String].bimap(_.value, CompileProjectResult.Patch)
+    implicit val compileResultFieldsRW: ReadWriter[CompileResult.FieldsSig]     = macroRW
+    implicit val compileResultFunctionRW: ReadWriter[CompileResult.FunctionSig] = macroRW
+    implicit val compileResultEventRW: ReadWriter[CompileResult.EventSig]       = macroRW
+    implicit val compileScriptResultRW: ReadWriter[CompileScriptResult]         = macroRW
+    implicit val compileContractResultRW: ReadWriter[CompileContractResult]     = macroRW
+    implicit val compileProjectResultRW: ReadWriter[CompileProjectResult]       = macroRW
+    implicit val compileScriptResultSigRW: ReadWriter[ScriptResult]             = macroRW
+    implicit val compileContractResultSigRW: ReadWriter[ContractResult]         = macroRW
+    implicit val codeInfoRW: ReadWriter[CodeInfo]                               = macroRW
+    implicit val artifactsRW: ReadWriter[Artifacts]                             = macroRW
 
-    val scripts = ret.scripts.map(s => {
-      val script = CompileScriptResultSig(
+    ret.scripts.map(s => {
+      val script = ScriptResult(
         s.version,
         s.name,
         s.bytecodeTemplate,
         s.fields,
         s.functions
       )
-
-      val value = Parser.infos(s.name)
-      value.warnings = s.warnings
-      value.bytecodeDebugPatch = s.bytecodeDebugPatch
-      Parser.infos.addOne(s.name, value)
+      val value = Compiler.metaInfos(s.name)
+      value.codeInfo.warnings = s.warnings
+      value.codeInfo.bytecodeDebugPatch = s.bytecodeDebugPatch
+      Compiler.metaInfos.addOne(s.name, value)
 
       val code = write(script, 2)
-      saveResultSig(code, Parser.infosPath(s.name)._2)
+      saveResult(code, Compiler.metaInfos(s.name).ArtifactPath)
       script
     })
-    val contracts = ret.contracts.map(c => {
-      val contract = CompileContractResultSig(
+    ret.contracts.map(c => {
+      val contract = ContractResult(
         c.version,
         c.name,
         c.bytecode,
@@ -170,22 +143,18 @@ class Cli extends Callable[Int] {
         c.events,
         c.functions
       )
-      val value = Parser.infos(c.name)
-      value.warnings = c.warnings
-      value.bytecodeDebugPatch = c.bytecodeDebugPatch
-      value.codeHashDebug = c.codeHashDebug
-      Parser.infos.addOne(c.name, value)
+      val value = Compiler.metaInfos(c.name)
+      value.codeInfo.warnings = c.warnings
+      value.codeInfo.bytecodeDebugPatch = c.bytecodeDebugPatch
+      value.codeInfo.codeHashDebug = c.codeHashDebug
+      Compiler.metaInfos.addOne(c.name, value)
 
       val code = write(contract, 2)
-      saveResultSig(code, Parser.infosPath(c.name)._2)
+      saveResult(code, Compiler.metaInfos(c.name).ArtifactPath)
       contract
     })
 
-    var ast = write(CompileProjectResultSig(contracts, scripts), 2)
-    debug(ast)
-//    saveAst(ast)
-
-    val artifacts = write(Artifacts(compilerOptions, Parser.infos.toMap), 2)
+    val artifacts = write(Artifacts(compilerOptions(), Compiler.metaInfos.map(item => (item._2.sourcePath.toString, item._2.codeInfo)).toMap), 2)
     saveProjectArtifacts(artifacts)
 
     var checkWaringAsError = 0
@@ -195,6 +164,8 @@ class Cli extends Callable[Int] {
         checkWaringAsError -= 1
       }
     }
+
+
     ret.scripts.foreach(script => each(script.warnings, s"script.name: ${script.name}"))
     ret.contracts.foreach(contract => each(contract.warnings, s"contract.name: ${contract.name}"))
     if (warningAsError) {
@@ -204,11 +175,9 @@ class Cli extends Callable[Int] {
     }
   }
 
-  def saveAst(codes: String): Unit = saveResultSig(codes, Paths.get(projectDir, "project.artifacts.json"))
+  def saveProjectArtifacts(codes: String): Unit = saveResult(codes, Paths.get(artifactsPath().toString, ".project.json"))
 
-  def saveProjectArtifacts(codes: String): Unit = saveResultSig(codes, Paths.get(artifactsPath().toString, ".project.json"))
-
-  def saveResultSig(code: String, path: Path): Unit = {
+  def saveResult(code: String, path: Path): Unit = {
     path.getParent.toFile.mkdirs()
     val writer = new PrintWriter(path.toFile)
     writer.write(code)

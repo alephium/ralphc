@@ -4,7 +4,7 @@ import org.alephium.api.model.CompileResult
 import org.alephium.protocol.Hash
 import org.alephium.util.AVector
 
-final case class CompileScriptResultSig(
+final case class ScriptResult(
     version: String,
     name: String,
     bytecodeTemplate: String,
@@ -12,7 +12,7 @@ final case class CompileScriptResultSig(
     functions: AVector[CompileResult.FunctionSig]
 ) extends CompileResult.Versioned
 
-final case class CompileContractResultSig(
+final case class ContractResult(
     version: String,
     name: String,
     bytecode: String,
@@ -21,8 +21,3 @@ final case class CompileContractResultSig(
     eventsSig: AVector[CompileResult.EventSig],
     functions: AVector[CompileResult.FunctionSig]
 ) extends CompileResult.Versioned
-
-final case class CompileProjectResultSig(
-    contracts: AVector[CompileContractResultSig],
-    scripts: AVector[CompileScriptResultSig]
-)
