@@ -40,7 +40,7 @@ object Compiler {
           .map(name => {
             val path       = file.toPath.toString
             val sourcePath = Paths.get(path.substring(path.indexOf(this.projectDirName)))
-            val savePath   = Paths.get(sourcePath.toString.replace(projectDirName, artifactsName) + ".json")
+            val savePath   = Paths.get(path.replace(projectDirName, artifactsName) + ".json")
             val meta       = MetaInfo(name, sourcePath, savePath, CodeInfo(sourceCodeHash, CompileProjectResult.Patch(""), Hash.zero, AVector()))
             metaInfos.addOne(name, meta)
           })
