@@ -30,7 +30,7 @@ jobs:
         run: make tests
 
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v2
+        uses: cycjimmy/semantic-release-action@v4
         id: semantic   # 您需要一个`id`来使用输出变量
         with:
           branch: main
